@@ -1,194 +1,185 @@
-# Running a Stateless Application Using Kubernetes Deployment
+# Getting Started with Minikube, Kubectl, and Vagrant
 
-This project demonstrates how to deploy and manage a stateless application (NGINX) on Kubernetes using `kubectl` commands and YAML configuration files.
-
-## Objectives
-
-- Create an NGINX deployment using `kubectl`.
-- Display information about the deployment.
-- Update the NGINX deployment.
-- Scale the deployment by increasing the replica count.
-- Delete the deployment when finished.
-
----
+This guide will help you get started with Kubernetes on your local machine using **Minikube**, **kubectl**, and **Vagrant**. You’ll be able to deploy a simple Kubernetes cluster and manage it using `kubectl`.
 
 ## Prerequisites
 
-- **Kubernetes Cluster**: You should have a running Kubernetes cluster. If you don’t have one, you can use Minikube or a Kubernetes playground like [Killercoda](https://killercoda.com) or [Play with Kubernetes](https://labs.play-with-k8s.com/).
-  
-- **kubectl**: Ensure that the `kubectl` command-line tool is installed and configured to interact with your Kubernetes cluster. To check if `kubectl` is configured, use:
+Before starting, ensure that you have the following installed:
 
-    ```bash
-    kubectl version
-    ```
+1. [Minikube](https://minikube.sigs.k8s.io/docs/start/?arch=%2Fmacos%2Farm64%2Fstable%2Fbinary+download)
+2. [Kubectl](https://kubernetes.io/docs/tasks/tools/)
+3. [Vagrant](https://developer.hashicorp.com/vagrant/docs/installation)
 
 ---
 
-## Step 1: Create an NGINX Deployment
+## Installation
 
-### Command-Line Approach
+### 1. Install Minikube
 
-You can create an NGINX Deployment by running the following `kubectl` command:
+You can follow the [Minikube installation guide](https://minikube.sigs.k8s.io/docs/start/) based on your operating system. Make sure it's properly set up.
 
-```bash
-kubectl create deployment nginx-deploy --image=nginx:1.14.2
-```
-
-This command will create an NGINX deployment using the image `nginx:1.14.2` with the default number of replicas (1).
-
-### YAML File Approach
-
-Alternatively, you can define the deployment in a YAML file and apply it to the cluster. Below is the `deployment.yaml` file:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-deployment
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.14.2
-        ports:
-        - containerPort: 80
-```
-
-Apply this deployment by running:
+To verify the installation, run:
 
 ```bash
-kubectl apply -f deployment.yaml
+minikube version
+```
+
+### 2. Install Kubectl
+
+Follow the official [Kubectl installation guide](https://kubernetes.io/docs/tasks/tools/) for your operating system.
+
+Verify installation by running:
+
+```bash
+kubectl version --client
+```
+
+### 3. Install Vagrant
+
+Visit the [Vagrant installation page](https://www.vagrantup.com/docs/installation) for your OS and follow the steps. 
+
+To verify, run:
+
+```bash
+vagrant --version
 ```
 
 ---
 
-## Step 2: Display Deployment Information
+## Setting Up Minikube
 
-Once the deployment is created, you can display information about it by running:
+Once all prerequisites are installed, follow these steps to get Kubernetes up and running.
+
+### 1. Start Minikube
+
+To start a Minikube cluster, run the following command:
 
 ```bash
-kubectl describe deployment nginx-deployment
+minikube start
 ```
 
-This command will display details about the deployment, such as the number of replicas, labels, pod template, and events.
+If you need to use a specific VM driver (like VirtualBox, Hyperkit, etc.), include the `--vm-driver` option. For example:
+
+```bash
+minikube start --vm-driver=virtualbox
+```
+
+### 2. Check Minikube Status
+
+You can check if your Minikube cluster is running by using:
+
+```bash
+minikube status
+```
+
+### 3. Point kubectl to Minikube
+
+Minikube automatically sets up your Kubernetes configuration in `~/.kube/config` to point `kubectl` at the Minikube cluster.
+
+To verify that kubectl is properly configured to use Minikube, run:
+
+```bash
+kubectl cluster-info
+```
+
+### 4. Enable Kubernetes LoadBalancers
+
+To allow Kubernetes to use `LoadBalancer` services in Minikube, run the following command in a separate terminal window:
+
+```bash
+minikube tunnel
+```
+
+This will allow Minikube to create `LoadBalancer` services locally.
 
 ---
 
-## Step 3: List the Pods Created by the Deployment
+## Basic Usage
 
-To list the Pods created by the deployment, use the following command:
+Once Minikube is running, you can deploy your first Kubernetes application.
 
-```bash
-kubectl get pods -l app=nginx
-```
+1. **Create a simple deployment** (e.g., an NGINX pod):
 
-This will display the status of the Pods, showing whether they are running.
+   ```bash
+   kubectl create deployment nginx-deploy --image=nginx
+   ```
 
----
+2. **Check the status of the deployment**:
 
-## Step 4: Updating the NGINX Deployment
+   ```bash
+   kubectl get deployments
+   kubectl get pods
+   ```
 
-To update the NGINX deployment and change the image version, modify the deployment YAML file as follows:
+3. **Expose the deployment via a service**:
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-deployment
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.16.1 # Update the version from 1.14.2 to 1.16.1
-        ports:
-        - containerPort: 80
-```
+   ```bash
+   kubectl expose deployment nginx-deploy --type=LoadBalancer --port=80
+   ```
 
-Apply the updated YAML file to the cluster:
+4. **Access the service**:
 
-```bash
-kubectl apply -f deployment.yaml
-```
+   You can access the NGINX deployment through the `LoadBalancer` service. Check for the IP and port by running:
+
+   ```bash
+   kubectl get services
+   ```
+
+   If you're using `minikube tunnel`, you should be able to visit the service using `http://<external-ip>:<port>`.
+
+5. **Clean up the resources**:
+
+   After you're done, you can clean up by running:
+
+   ```bash
+   kubectl delete service nginx-deploy
+   kubectl delete deployment nginx-deploy
+   ```
 
 ---
 
-## Step 5: Scaling the Application
+## Using Vagrant with Minikube
 
-To scale the deployment and increase the number of replicas, update the `replicas` field in the YAML file:
+If you'd like to set up a Kubernetes cluster using Vagrant, follow these steps:
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-deployment
-spec:
-  replicas: 4 # Increase the number of replicas from 2 to 4
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.16.1
-        ports:
-        - containerPort: 80
-```
+1. Create a **Vagrantfile** with the necessary Minikube configuration. For example:
 
-Apply the changes:
+   ```ruby
+   Vagrant.configure("2") do |config|
+     config.vm.box = "bento/ubuntu-20.04"
+     config.vm.provider "virtualbox" do |v|
+       v.memory = 4096
+       v.cpus = 2
+     end
+   end
+   ```
 
-```bash
-kubectl apply -f deployment.yaml
-```
+2. Start the virtual machine using Vagrant:
 
-Check if the deployment has scaled to 4 replicas:
+   ```bash
+   vagrant up
+   ```
 
-```bash
-kubectl get pods -l app=nginx
-```
+3. SSH into the Vagrant machine:
+
+   ```bash
+   vagrant ssh
+   ```
+
+4. Install **Minikube** and **kubectl** inside the Vagrant VM if they are not already installed, then follow the same steps outlined above to start Minikube and manage your Kubernetes cluster.
 
 ---
 
-## Step 6: Deleting the Deployment
+## Troubleshooting
 
-When you're done with the deployment, you can delete it using the following command:
-
-```bash
-kubectl delete deployment nginx-deployment
-```
-
-This will delete the deployment along with all the Pods associated with it.
+- **Minikube Failed to Start**: Make sure your system meets the memory and CPU requirements. If using a VM driver, ensure the appropriate virtualization software (e.g., VirtualBox, HyperKit) is installed.
+- **kubectl Commands Not Working**: Verify that your `~/.kube/config` is correctly pointing to the Minikube cluster by running `kubectl config current-context`.
+- **Accessing LoadBalancer Services**: Ensure `minikube tunnel` is running in a separate terminal for services that use the `LoadBalancer` type.
 
 ---
 
-## Additional Resources
+## Resources
 
-- [Kubernetes Documentation](https://kubernetes.io/docs/home/)
-- [Kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
-- [Minikube](https://minikube.sigs.k8s.io/docs/start/)
-
----
-
-This project is a hands-on introduction to managing stateless applications in Kubernetes. As you progress, you can explore more advanced features like StatefulSets, Services, and Ingress controllers. Happy learning!
-
---- 
-
+- [Minikube Documentation](https://minikube.sigs.k8s.io/docs/handbook/controls/)
+- [Kubectl Documentation](https://kubernetes.io/docs/reference/kubectl/)
+- [Vagrant Documentation](https://www.vagrantup.com/docs)
